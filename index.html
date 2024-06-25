@@ -1,80 +1,134 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewpoint" content="width=device-width, initial-scale=1.0">
-    <title>Weather App</title>
-    <link rel="stylesheet" href="style.css">
+<!-- Corrected the viewport meta tag for responsiveness -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather App</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <div class="card">
-        <div class="search">
-            <input type="text" placeholder="Enter city name"
-            spellcheck="false">
-            <button><img src="Images/search.png"></button>
-        </div>
-        <div class="weather">
-            <img src="Images/rain.png" class="weather-icon">
-            <h1 class="temp">22°C</h1>
-            <h2 class="city">New York</h2>
-            <div class="details">
-                <div class="col">
-                    <img src="Images/humidity.png">
-                    <div>
-                        <p class="humidity">50%</p>
-                        <p>Humidity</p>
-                    </div>
+<div class="card">
+    <div class="search">
+        <input type="text" placeholder="Enter city name" spellcheck="false">
+        <!-- Added alt attribute to the image for accessibility -->
+        <button><img src="Images/search.png" alt="Search"></button>
+    </div>
+    <div class="weather" style="display: none;">
+        <!-- Added alt attribute to the image for accessibility -->
+        <img src="Images/rain.png" class="weather-icon" alt="Weather Icon">
+        <h1 class="temp">22°C</h1>
+        <h2 class="city">New York</h2>
+        <h3 class="country">United States</h3> <!-- Display the full country name here -->
+        <div class="details">
+            <div class="col">
+                <!-- Added alt attribute to the image for accessibility -->
+                <img src="Images/humidity.png" alt="Humidity Icon">
+                <div>
+                    <p class="humidity">50%</p>
+                    <p>Humidity</p>
                 </div>
-                <div class="col">
-                    <img src="Images/wind.png">
-                    <div>
-                        <p class="wind">15 km/h</p>
-                        <p>Wind Speed</p>
-                    </div>
+            </div>
+            <div class="col">
+                <!-- Added alt attribute to the image for accessibility -->
+                <img src="Images/wind.png" alt="Wind Icon">
+                <div>
+                    <p class="wind">15 km/h</p>
+                    <p>Wind Speed</p>
                 </div>
             </div>
         </div>
     </div>
-
-
+</div>
 <script>
-    const apiKey = "e57459485962504448de5c6aab29c66a";
-    const apiUrl = "https://api.openweathermap.org/data/2.5/weather?units=metric&q=";
+// API key and URL for fetching weather data
+const apiKey = "e57459485962504448de5c6aab29c66a";
+const apiUrl = "https://api.openweathermap.org/data/2.5/weather?units=metric&q=";
 
-    const searchBox = document.querySelector(".search input")
-    const searchBtn = document.querySelector(".search button")
-    const weatherIcon = document.querySelector("weather-icon")
+// Selecting DOM elements
+const searchBox = document.querySelector(".search input");
+const searchBtn = document.querySelector(".search button");
+const weatherIcon = document.querySelector(".weather-icon");
 
-    async function checkWeather(city){
-        const response = await fetch(apiUrl + city + `&appid=${apiKey}`)
-        var data = await response.json();
+// Function to fetch and display weather data
+async function checkWeather(city) {
+try {
+    // Fetching weather data from API
+    const response = await fetch(apiUrl + city + `&appid=${apiKey}`);
+    if (!response.ok) {
+        // Handling case where city is not found
+        throw new Error('City not found');
+    }
+    const data = await response.json();
 
-        console.log(data);
-
+    // Checking if the data structure is as expected
+    if (data.main && data.weather && data.sys) {
+        // Updating the DOM with weather data
         document.querySelector(".city").innerHTML = data.name;
         document.querySelector(".temp").innerHTML = Math.round(data.main.temp) + "°C";
         document.querySelector(".humidity").innerHTML = data.main.humidity + "%";
-        document.querySelector(".wind").innerHTML = data.wind.speed + "km/h";
+        document.querySelector(".wind").innerHTML = data.wind.speed + " km/h";
+        
+        // Fetching full country name from a separate API call
+        const countryName = await fetchCountryName(data.sys.country);
+        document.querySelector(".country").innerHTML = countryName;
 
-        if(data.weather[0].main == "Clouds"){
-            weatherIcon.src = "Images/clouds.png"
-
-        }else if(data.weather[0].main == "Clear"){
-            weatherIcon.src = "images/clear.png";
-        }else if(data.weather[0].main == "Rain"){
-            weatherIcon.src = "images/rain.png";
-        }else if(data.weather[0].main == "Drizzle"){
-            weatherIcon.src = "images/drizzle.png";
-        }else if(data.weather[0].main == "Mist"){
-            weatherIcon.src = "images/mist.png";
+        // Setting the weather icon based on weather condition
+        switch (data.weather[0].main) {
+            case "Clouds":
+                weatherIcon.src = "Images/clouds.png";
+                break;
+            case "Clear":
+                weatherIcon.src = "Images/clear.png";
+                break;
+            case "Rain":
+                weatherIcon.src = "Images/rain.png";
+                break;
+            case "Drizzle":
+                weatherIcon.src = "Images/drizzle.png";
+                break;
+            case "Mist":
+                weatherIcon.src = "Images/mist.png";
+                break;
+            default:
+                weatherIcon.src = "Images/default.png";
         }
+        document.querySelector(".weather").style.display = "block";
+    } else {
+        // Handling unexpected response structure
+        throw new Error('Unexpected response structure');
     }
-    searchBtn.addEventListener("click", ()=>{
-        checkWeather(searchBox.value);
+} catch (error) {
+    // Displaying error message to the user
+    alert(error.message);
+}
+}
 
-    })
+// Function to fetch full country name based on country code
+async function fetchCountryName(countryCode) {
+try {
+    const response = await fetch(`https://restcountries.com/v3/alpha/${countryCode}`);
+    if (!response.ok) {
+        throw new Error('Country name not found');
+    }
+    const data = await response.json();
+    // Return the full country name
+    return data[0].name.common;
+} catch (error) {
+    console.error('Error fetching country name:', error);
+    return countryCode; // Fallback to country code if name not found
+}
+}
 
-    checkWeather();
+// Adding event listener to the search button
+searchBtn.addEventListener("click", () => {
+if (searchBox.value) {
+    // Checking weather for the entered city
+    checkWeather(searchBox.value);
+} else {
+    // Prompting user to enter a city name if input is empty
+    alert('Please enter a city name');
+}
+});
 </script>
 </body>
 </html>
